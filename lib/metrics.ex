@@ -28,7 +28,7 @@ defmodule Metrics do
   def get_failures(fn_name) do
     pid = get_worker_pid(fn_name)
 
-    IO.inspect(GenServer.call(pid, :get_count))
+    GenServer.call(pid, :get_count)
   end
 
   defp get_worker_pid(fn_name) do

@@ -86,8 +86,6 @@ defmodule CircuitBreaker.State do
         end
       end)
 
-    IO.inspect(calls, label: "calls")
-
     cond do
       calls.number_failed >= 1 -> Map.put(state, :state, :open)
       calls.number_success == state.config.half_open_number -> Map.put(state, :state, :closed)
