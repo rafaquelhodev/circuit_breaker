@@ -9,9 +9,9 @@ defmodule CircuitBreakerTest do
         CircuitBreaker.with_breaker errors: [:error],
                                     name: "http_client",
                                     config: %{
-                                      threshold_number: 5,
-                                      threshold_seconds: 10,
-                                      timeout: 3000,
+                                      errors_threshold_number: 5,
+                                      error_threshold_milliseconds: 10000,
+                                      timeout_milliseconds: 3000,
                                       half_open_number: 10
                                     } do
           input
@@ -25,14 +25,14 @@ defmodule CircuitBreakerTest do
       assert {:error, :open_circuit_breaker} == func_test.(:error)
     end
 
-    test "should change to half_open when the timeout is reached" do
+    test "should change to half_open when the timeout_milliseconds is reached" do
       func_test = fn input ->
         CircuitBreaker.with_breaker errors: [:error],
                                     name: "half_open_test",
                                     config: %{
-                                      threshold_number: 5,
-                                      threshold_seconds: 10,
-                                      timeout: 2000,
+                                      errors_threshold_number: 5,
+                                      error_threshold_milliseconds: 10,
+                                      timeout_milliseconds: 2000,
                                       half_open_number: 10
                                     } do
           input
@@ -54,9 +54,9 @@ defmodule CircuitBreakerTest do
         CircuitBreaker.with_breaker errors: [:error],
                                     name: "half_open_to_closed_test",
                                     config: %{
-                                      threshold_number: 5,
-                                      threshold_seconds: 10,
-                                      timeout: 2000,
+                                      errors_threshold_number: 5,
+                                      error_threshold_milliseconds: 10,
+                                      timeout_milliseconds: 2000,
                                       half_open_number: 10
                                     } do
           input
@@ -84,9 +84,9 @@ defmodule CircuitBreakerTest do
         CircuitBreaker.with_breaker errors: [:error],
                                     name: "half_open_to_open_test",
                                     config: %{
-                                      threshold_number: 5,
-                                      threshold_seconds: 10,
-                                      timeout: 2000,
+                                      errors_threshold_number: 5,
+                                      error_threshold_milliseconds: 10,
+                                      timeout_milliseconds: 2000,
                                       half_open_number: 10
                                     } do
           input

@@ -7,13 +7,18 @@ defmodule CircuitBreaker.State do
 
   defmodule CircuitBreaker.State.Config do
     @type t() :: %__MODULE__{
-            threshold_number: pos_integer(),
-            threshold_seconds: pos_integer(),
-            timeout: float(),
+            errors_threshold_number: pos_integer(),
+            error_threshold_milliseconds: pos_integer(),
+            timeout_milliseconds: float(),
             half_open_number: pos_integer()
           }
 
-    defstruct [:threshold_number, :threshold_seconds, :timeout, :half_open_number]
+    defstruct [
+      :errors_threshold_number,
+      :error_threshold_milliseconds,
+      :timeout_milliseconds,
+      :half_open_number
+    ]
   end
 
   @type t() :: %__MODULE__{
@@ -99,10 +104,10 @@ defmodule CircuitBreaker.State do
     error_number =
       get_number_errors(
         state,
-        DateTime.add(DateTime.utc_now(), -config.threshold_seconds, :second)
+        DateTime.add(DateTime.utc_now(), -config.error_threshold_milliseconds, :millisecond)
       )
 
-    if error_number >= config.threshold_number do
+    if error_number >= config.errors_threshold_number do
       Map.put(state, :state, :open)
     else
       state

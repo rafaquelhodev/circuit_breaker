@@ -29,7 +29,7 @@ defmodule CircuitBreaker.Manager.Worker do
       |> State.maybe_update_circuit_status()
 
     if old_state == :closed and state.state == :open do
-      Process.send_after(self(), :change_half_open, state.config.timeout)
+      Process.send_after(self(), :change_half_open, state.config.timeout_milliseconds)
     end
 
     {:noreply, state}
@@ -45,7 +45,7 @@ defmodule CircuitBreaker.Manager.Worker do
       |> State.maybe_update_circuit_status()
 
     if old_state == :half_open and state.state == :open do
-      Process.send_after(self(), :change_half_open, state.config.timeout)
+      Process.send_after(self(), :change_half_open, state.config.timeout_milliseconds)
     end
 
     state =
