@@ -15,12 +15,21 @@ defmodule CircuitBreaker.Manager.Worker do
 
   @impl true
   def init(opts) do
+    initial_state = %State{state: :closed, errors: [], config: Keyword.get(opts, :config)}
+
+    name = Keyword.get(opts, :name)
+
+    :ets.insert(:circuit_breaker, {name, initial_state})
+
     Process.flag(:trap_exit, true)
-    {:ok, %State{state: :closed, errors: [], config: Keyword.get(opts, :config)}}
+
+    {:ok, %{name: name, state: initial_state}}
   end
 
   @impl true
-  def handle_cast(:bump, state = %State{}) do
+  def handle_call(:bump, _from, %{name: name} = gen_state) do
+    [{name, state}] = :ets.lookup(:circuit_breaker, name)
+
     old_state = state.state
 
     state =
@@ -28,15 +37,20 @@ defmodule CircuitBreaker.Manager.Worker do
       |> State.add_error()
       |> State.maybe_update_circuit_status()
 
+    :ets.insert(:circuit_breaker, {name, state})
+
     if old_state == :closed and state.state == :open do
+      Logger.debug("Scheduling half open")
       Process.send_after(self(), :change_half_open, state.config.timeout_milliseconds)
     end
 
-    {:noreply, state}
+    {:reply, gen_state, gen_state}
   end
 
   @impl true
-  def handle_cast({:report_half_open_call, job_id, has_errors?}, state) do
+  def handle_call({:report_half_open_call, job_id, has_errors?}, _from, %{name: name} = gen_state) do
+    [{name, state}] = :ets.lookup(:circuit_breaker, name)
+
     old_state = state.state
 
     state =
@@ -55,27 +69,37 @@ defmodule CircuitBreaker.Manager.Worker do
         state
       end
 
-    {:noreply, state}
+    :ets.insert(:circuit_breaker, {name, state})
+
+    {:reply, gen_state, gen_state}
   end
 
   @impl true
-  def handle_info(:change_half_open, state) do
+  def handle_call(:book_half_open_call, _from, %{name: name} = gen_state) do
+    [{name, state}] = :ets.lookup(:circuit_breaker, name)
+
+    case State.book_half_open_call(state) do
+      {:error, _} = error ->
+        {:reply, error, gen_state}
+
+      {state, job_id} ->
+        :ets.insert(:circuit_breaker, {name, state})
+        {:reply, {state, job_id}, gen_state}
+    end
+  end
+
+  @impl true
+  def handle_info(:change_half_open, %{name: name} = gen_state) do
     Logger.debug("Changing to :half_open")
 
+    [{name, state}] = :ets.lookup(:circuit_breaker, name)
+
     state = State.change_half_open(state)
-    {:noreply, state}
-  end
 
-  @impl true
-  def handle_call(:get_state, _from, state) do
-    {:reply, state, state}
-  end
+    :ets.insert(:circuit_breaker, {name, state})
 
-  @impl true
-  def handle_call(:book_half_open_call, _from, state) do
-    case State.book_half_open_call(state) do
-      {:error, _} = error -> {:reply, error, state}
-      {state, job_id} -> {:reply, {state, job_id}, state}
-    end
+    Logger.debug("Changed to :half_open")
+
+    {:noreply, gen_state}
   end
 end

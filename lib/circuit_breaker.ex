@@ -1,6 +1,6 @@
 defmodule CircuitBreaker do
-  alias CircuitBreaker.Manager.Supervisor
   alias CircuitBreaker.State
+  alias CircuitBreaker.Manager
 
   defmacro __using__(opts) do
     quote location: :keep do
@@ -18,7 +18,7 @@ defmodule CircuitBreaker do
       name = Keyword.get(config, :name)
       config = Keyword.get(config, :config)
 
-      state = %State{} = Supervisor.get_state(name, config)
+      state = %State{} = Manager.get_state(name)
 
       current_status = state.state
 
@@ -30,19 +30,19 @@ defmodule CircuitBreaker do
           resp = unquote(clause)
 
           if resp in errors do
-            Supervisor.bump(name, config)
+            Manager.bump(name, config)
           end
 
           resp
 
         current_status == :half_open ->
-          case Supervisor.book_half_open_call(name) do
+          case Manager.book_half_open_call(name) do
             {state = %State{}, job_id} ->
               resp = unquote(clause)
 
               has_errors? = resp in errors
 
-              Supervisor.report_half_open_call(name, job_id, has_errors?)
+              Manager.report_half_open_call(name, job_id, has_errors?)
 
               resp
 

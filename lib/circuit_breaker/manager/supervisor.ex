@@ -16,34 +16,12 @@ defmodule CircuitBreaker.Manager.Supervisor do
       {DynamicSupervisor, name: @supervisor, strategy: :one_for_one}
     ]
 
+    :ets.new(:circuit_breaker, [:set, :public, :named_table])
+
     Supervisor.init(children, strategy: :one_for_all)
   end
 
-  def bump(component_name, config) do
-    pid = get_worker_pid(component_name, config)
-
-    GenServer.cast(pid, :bump)
-  end
-
-  def get_state(component_name, config) do
-    pid = get_worker_pid(component_name, config)
-
-    GenServer.call(pid, :get_state)
-  end
-
-  def book_half_open_call(component_name) do
-    pid = get_worker_pid(component_name, nil)
-
-    GenServer.call(pid, :book_half_open_call)
-  end
-
-  def report_half_open_call(component_name, job_id, has_errors?) do
-    pid = get_worker_pid(component_name, nil)
-
-    GenServer.cast(pid, {:report_half_open_call, job_id, has_errors?})
-  end
-
-  defp get_worker_pid(component_name, config) do
+  def get_worker_pid(component_name, config) do
     case Registry.lookup(@registry, component_name) do
       [{pid, _}] ->
         pid

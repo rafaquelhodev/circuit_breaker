@@ -7,7 +7,7 @@ defmodule CircuitBreakerTest do
     test "should open the circuit when the thereshold is reached" do
       func_test = fn input ->
         CircuitBreaker.with_breaker errors: [:error],
-                                    name: "http_client",
+                                    name: :http_client,
                                     config: %{
                                       errors_threshold_number: 5,
                                       error_threshold_milliseconds: 10000,
@@ -28,7 +28,7 @@ defmodule CircuitBreakerTest do
     test "should change to half_open when the timeout_milliseconds is reached" do
       func_test = fn input ->
         CircuitBreaker.with_breaker errors: [:error],
-                                    name: "half_open_test",
+                                    name: :half_open_test,
                                     config: %{
                                       errors_threshold_number: 5,
                                       error_threshold_milliseconds: 10,
@@ -45,14 +45,14 @@ defmodule CircuitBreakerTest do
 
       assert {:error, :open_circuit_breaker} == func_test.(:error)
 
-      Process.sleep(2000)
+      Process.sleep(2001)
       assert :ok == func_test.(:ok)
     end
 
     test "should close if the half_open_number limit is reached" do
       func_test = fn input ->
         CircuitBreaker.with_breaker errors: [:error],
-                                    name: "half_open_to_closed_test",
+                                    name: :half_open_to_closed_test,
                                     config: %{
                                       errors_threshold_number: 5,
                                       error_threshold_milliseconds: 10,
@@ -82,7 +82,7 @@ defmodule CircuitBreakerTest do
     test "should open if there is an error when half_open" do
       func_test = fn input ->
         CircuitBreaker.with_breaker errors: [:error],
-                                    name: "half_open_to_open_test",
+                                    name: :half_open_to_open_test,
                                     config: %{
                                       errors_threshold_number: 5,
                                       error_threshold_milliseconds: 10,
@@ -99,7 +99,7 @@ defmodule CircuitBreakerTest do
 
       assert {:error, :open_circuit_breaker} == func_test.(:error)
 
-      Process.sleep(2000)
+      Process.sleep(2001)
       assert :ok == func_test.(:ok)
       assert :error == func_test.(:error)
       assert {:error, :open_circuit_breaker} == func_test.(:error)
